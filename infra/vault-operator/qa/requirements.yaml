@@ -1,0 +1,4 @@
+dependencies:
+- name: vault-operator
+  repository: https://kubernetes-charts.banzaicloud.com
+  version: 1.4.1

@@ -1,0 +1,68 @@
+vault-operator: 
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/banzaicloud/vault-operator
+    tag: 1.4.2
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    externalPort: 80
+    internalPort: 8080
+
+  nameOverride: ""
+  fullnameOverride: ""
+
+  crdAnnotations: {}
+
+  # The namespace where the operator watches for vault CRD objects, if not defined
+  # all namespaces are watched
+  watchNamespace: ""
+  syncPeriod: "1m"
+
+  # # If needed, define nodeSelector for vault operator
+  nodeSelector:
+    tier: "infra"
+
+  # # if tolerations are used inside cluster, define tolerations as well
+  # tolerations:
+  #   - effect: NoSchedule
+  #     key: node_role
+  #     operator: Equal
+  #     value: custom_worker
+
+  labels: {}
+    #  team: banzai
+
+  resources:
+    limits:
+      cpu: 100m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  affinity: {}
+
+  ## Assign a PriorityClassName to pods if set
+  priorityClassName: ""
+
+  terminationGracePeriodSeconds: 10
+
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 1
+  readinessProbe:
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 1
+
+  etcd-operator:
+    enabled: false
+    etcdOperator:
+      commandArgs:
+        cluster-wide: true
+        create-crd: false
