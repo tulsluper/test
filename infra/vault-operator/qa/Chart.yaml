@@ -1,4 +1,4 @@
 apiVersion: v1
 description: A Helm chart for Kubernetes
 name: local-vault-operator
-version: 1.12.3
+version: 1.13.2
