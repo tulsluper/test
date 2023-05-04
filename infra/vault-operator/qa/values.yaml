@@ -3,7 +3,7 @@ vault-operator:
 
   image:
     repository: ghcr.io/banzaicloud/vault-operator
-    tag: 1.4.2
+    # tag: 1.4.2
     pullPolicy: IfNotPresent
 
   service:
