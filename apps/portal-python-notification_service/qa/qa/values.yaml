@@ -28,16 +28,22 @@ app:
     paths:
       - path: /metrics
         backend:
-          serviceName: response-404
-          servicePortName: use-annotation
+          service:
+            name: response-404
+            port:
+              name: use-annotation
       - path: /*
         backend:
-          servicePortNumber: 80
+          service:
+            port:
+              number: 80
     extraPaths:
       - path: /*
         backend:
-          serviceName: ssl-redirect
-          servicePortName: use-annotation
+          service:
+            name: ssl-redirect
+            port:
+              name: use-annotation
           
   serviceAccount:
     create: true

@@ -31,12 +31,12 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: {{ default $serviceDefaultName $value.backend.serviceName }}
+                name: {{ default $serviceDefaultName $value.backend.service.name }}
                 port:
-                  {{- if $value.backend.servicePortName }}
-                  name: {{ $value.backend.servicePortName }}
-                  {{- else if $value.backend.servicePortNumber }}
-                  number: {{ $value.backend.servicePortNumber }}
+                  {{- if $value.backend.service.port.name }}
+                  name: {{ $value.backend.service.port.name }}
+                  {{- else if $value.backend.service.port.number }}
+                  number: {{ $value.backend.service.port.number }}
                   {{- else }}
                   number: 80
                   {{- end }}
@@ -53,12 +53,12 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: {{ default $serviceDefaultName $value.backend.serviceName }}
+                name: {{ default $serviceDefaultName $value.backend.service.name }}
                 port
-                  {{- if $value.backend.servicePortName }}
-                  name: {{ $value.backend.servicePortName }}
-                  {{- else if $value.backend.servicePortNumber }}
-                  number: {{ $value.backend.servicePortNumber }}
+                  {{- if $value.backend.service.port.name }}
+                  name: {{ $value.backend.service.port.name }}
+                  {{- else if $value.backend.service.port.number }}
+                  number: {{ $value.backend.service.port.number }}
                   {{- else }}
                   number: 80
                   {{- end }}
