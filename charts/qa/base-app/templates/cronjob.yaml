@@ -1,0 +1,84 @@
+{{- if .Values.cronjob.enabled -}}
+  {{- $root := . -}}
+  {{- $appname := printf "%s" (include "name" .) -}}
+  {{- $cronJobName :=  printf "%s-%s" (include "name" .) "cron" -}}
+  {{- $vaultUrl := printf "%s" (include "vaultUrl" .) -}}
+  {{- $vaultRole := printf "%s" (include "vaultRole" .) -}}
+  {{- $vaultAuthPath := printf "%s" (include "vaultAuthPath" .) -}}
+  {{- $vaultPath := printf "secret/data/apps/%s/%s/%s" (include "vaultNamespace" .) (include "vaultProjectName" .) (include "environment" .) -}}
+  {{- range $key, $value := .Values.cronjob.spec }}
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  namespace: {{ $root.Release.Namespace }}
+  labels:
+    cronjob: {{ $cronJobName }}
+    app: {{ $appname }}
+    appver: "{{ .Values.image.tag }}"
+    release: "{{ .Release.Name }}"
+  name: {{ $cronJobName }}-{{ $key }}
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 10
+  jobTemplate:
+    metadata:
+      name: {{ $cronJobName }}-{{ $key }}
+      annotations:
+        vault.security.banzaicloud.io/vault-addr: {{ $vaultUrl }}
+        vault.security.banzaicloud.io/vault-role: {{ $vaultRole }}
+        vault.security.banzaicloud.io/vault-path: {{ $vaultAuthPath }} 
+      labels:
+        cronjob: {{ $cronJobName }}
+        app: {{ $appname }}
+        appver: {{ $root.Values.image.tag }}
+        release: {{ $root.Release.Name }}
+    spec:
+      template:
+        spec:
+          containers:
+          - name: {{ $key }}
+            command: 
+            {{- range $value.command}}
+            - {{ . }}
+            {{- end }}
+            args:
+            {{- range $value.args}}
+            - {{ . }}
+            {{- end }}
+            {{- if $root.Values.configmap }}
+            envFrom:
+            - configMapRef:
+                name: {{ $appname }}
+            {{- end }}
+            env:
+            {{- if $root.Values.secrets }}
+            {{- range $key, $value := $root.Values.secrets }}
+            - name: {{ $key }}
+              value: vault:{{ $vaultPath }}#{{ $value }}
+            {{- end }}
+            {{- end }}
+            {{- if $root.Values.extraSecrets }}
+            {{- range $key, $value := $root.Values.extraSecrets }}
+            - name: {{ $key }}
+              value: {{ tpl $value $ }}
+            {{- end }}
+            {{- end }}
+            image: {{ $root.Values.image.repository }}:{{ $root.Values.image.tag }}
+            imagePullPolicy: Always
+        {{- if $root.Values.deployRegistrySecret }}
+          imagePullSecrets:
+          - name: regsecret-{{ $appname }}
+        {{- end }}
+        {{- if $root.Values.nodeSelector }}
+          nodeSelector:
+          {{ toYaml $root.Values.nodeSelector | indent 8 }}
+        {{- end }}
+          restartPolicy: Never
+          terminationGracePeriodSeconds: 30
+  schedule: {{ default "1 * * * *" $value.schedule | quote }}
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  suspend: false
+  {{- end -}}
+{{- end -}}

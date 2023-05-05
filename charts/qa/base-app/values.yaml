@@ -1,0 +1,194 @@
+environment: ""
+appName: ""
+branch: ""
+nodeSelector: {}
+tolerations: {}
+tracingEnabled: false
+containerArgs: ""
+replicas: 1
+buildId:
+environment: ""
+
+deployment:
+  enabled: true
+
+rbac:
+  create: false
+  resources: []
+
+service:
+  enabled: true
+  ports:
+    http:
+      externalPort: 8080
+      internalPort: 8080
+      protocol: TCP
+
+serviceExternal:
+  enabled: false
+
+serviceHeadless:
+  enabled: false
+
+serviceExternalName:
+  enabled: false
+  externalName: ""
+
+image:
+  repository: ""
+  tag: ""
+
+strategy:
+  rollingUpdate:
+    maxSurge:
+    maxUnavailable:
+  type: RollingUpdate
+
+prometheus:
+  enabled: false
+  port: "8011"
+  path: "/metrics"
+
+resources: {}
+  # requests:
+  #   memory: 400Mi
+
+ingress:
+  enabled: false
+  fqdn: ""
+  aliases: ""
+  vaultCert: ""
+  extraHosts: {}
+    # "some-host.com":
+    #   locations:
+    #     "/main":
+    #       serviceName: "test-sv"
+    #       servicePort: 8888
+    #     "/page":
+    #       serviceName: "test-sv"
+    #       servicePort: 8881
+    # "test.some-host.com":
+    #   locations:
+    #     "/secondary":
+    #       serviceName: "test-sv"
+    #       servicePort: 8880
+    #     "/path":
+    #       serviceName: "test-sv"
+    #       servicePort: 8889
+      
+
+
+job:
+#If true, create simple jobs, e.g. migration
+  enabled: false
+  spec: {}
+  # printenv:
+  #   command: ["printenv"]
+  #   args: ["HOSTNAME", "PATH"]
+  # host:
+  #   command: ["echo"]
+  #   args: ["HELLO", "WORLD"]
+
+cloudflare:
+  enabled: false
+
+cronjob:
+#If true, create cron jobs
+  enabled: false
+  spec: {}
+  # printenv:
+  #   command: ["printenv"]
+  #   args: ["HOSTNAME","PATH"]
+  #   schedule: "* * * * *"
+  # host:
+  #   command: ["echo"]
+  #   args: ["HELLO", "WORLD"]
+  #   schedule: "*/2 * * * *"
+
+worker:
+  #If true, create worker deployments
+  enabled: false
+#  spec:
+#   printenv:
+#     replicas: 3
+#     command: ["printenv"]
+#     args: ["HOSTNAME","PATH"]
+#     livenessProbe:
+#       mode: httpGet
+#       execCommand:
+#         command: "cat"
+#       httpGet:
+#         port: 80
+#         path: "/health"
+#       tcpSocket:
+#         port: 80
+#     readinessProbe:
+#       mode: httpGet
+#       execCommand:
+#         command: "cat"
+#       httpGet:
+#         port: 80
+#         path: "/health"
+#       tcpSocket:
+#         port: 80
+
+livenessProbe:
+  enabled: false
+  mode: httpGet
+  execCommand:
+    command: "cat"
+  httpGet:
+    port: 80
+    path: "/health"
+  tcpSocket:
+    port: 80
+
+readinessProbe:
+  enabled: false
+  mode: httpGet
+  execCommand:
+    command: "cat"
+  httpGet:
+    port: 80
+    path: "/health"
+  tcpSocket:
+    port: 80
+
+secrets: {}
+configmap: {}
+vaultProjectName: ""
+vaultNamespace: ""
+
+serviceAccount:
+  create: false
+  name: ""
+  annotations:
+    eks.amazonaws.com/role-arn: ""
+
+alerts:
+  enabled: false 
+  # rules: 
+  #   - alert: AppOutOfSync
+  #     expr: argocd_app_info{sync_status!="Synced",project="default"} == 1
+  #     for: 20m
+  #     labels:
+  #       severity: error
+  #     annotations:
+  #       summary: "{{ $labels.name }} is out-of-sync."
+  #   - alert: AllAppMissing
+  #     expr: absent(argocd_app_info{sync_status="Synced",project="default"})
+  #     for: 20m
+  #     labels:
+  #       severity: error
+  #     annotations:
+  #       summary: "no application is synced."
+  #   - alert: ArgoCDDown
+  #     expr: |
+  #       absent(up{job="argocd-metrics"} == 1)
+  #     labels:
+  #       severity: error
+  #     for: 10m
+  #     annotations:
+  #       summary: ArgoCD has disappeared from Prometheus target discovery.
+  #       runbook: Please consider to find root causes, and solve the problems
+  extraSecrets: {}

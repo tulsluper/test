@@ -1,0 +1,9 @@
+dependencies:
+# - name: mongodb
+#   repository: https://charts.bitnami.com/bitnami/
+#   version: 10.19.0
+
+- alias: app
+  name: base-app
+  repository: file://../../charts/qa/base-app
+  version: 1.0.0

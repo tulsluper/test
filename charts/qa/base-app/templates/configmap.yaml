@@ -1,0 +1,18 @@
+{{- if .Values.configmap -}}
+{{- $appname := printf "%s" (include "name" .) -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $appname }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+  labels:
+    app: {{ $appname }}
+    appver: "{{ .Values.image.tag }}"
+    release: "{{ .Release.Name }}"
+data:
+{{- range $key, $value := .Values.configmap }}
+  {{ $key }}: {{ $value | quote }}
+{{- end }}
+{{- end -}}

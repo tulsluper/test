@@ -1,0 +1,155 @@
+{{- if .Values.deployment.enabled }}
+{{- $appname := printf "%s" (include "name" .) -}}
+{{- $vaultUrl := printf "%s" (include "vaultUrl" .) -}}
+{{- $vaultRole := printf "%s" (include "vaultRole" .) -}}
+{{- $vaultAuthPath := printf "%s" (include "vaultAuthPath" .) -}}
+{{- $vaultPath := printf "secret/data/apps/%s/%s/%s" (include "vaultNamespace" .) (include "vaultProjectName" .) (include "environment" .) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  annotations:
+  labels:
+    app: {{ $appname }}
+    appver: "{{ .Values.image.tag }}"
+    release: "{{ .Release.Name }}"
+  name: {{ $appname }}
+spec:
+  replicas: {{ default 3 .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ $appname }}
+      release: "{{ .Release.Name }}"
+  strategy:
+    {{- if eq .Values.strategy.type "RollingUpdate" }}
+    rollingUpdate:
+      maxSurge: {{ .Values.strategy.rollingUpdate.maxSurge | default "1" }}
+      maxUnavailable: {{ .Values.strategy.rollingUpdate.maxUnavailable | default "0" }}
+    {{- end }}
+    type: {{ .Values.strategy.type | default "RollingUpdate" }}
+  template:
+    metadata:
+      annotations:
+    {{- if .Values.secrets }}
+        vault.security.banzaicloud.io/vault-addr: {{ $vaultUrl }}
+        vault.security.banzaicloud.io/vault-role: {{ $vaultRole }}
+        vault.security.banzaicloud.io/vault-path: {{ $vaultAuthPath }} 
+    {{- end }}
+    {{- if .Values.prometheus.enabled }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.prometheus.port | quote | default "8011" }}
+        prometheus.io/path: {{ .Values.prometheus.path | quote | default "/metrics" }}
+    {{- end }}
+      labels:
+        app: {{ $appname }}
+        appver: "{{ .Values.image.tag }}"
+        release: "{{ .Release.Name }}"
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - {{ $appname }}
+            topologyKey: "kubernetes.io/hostname"
+      serviceAccountName: {{ template "serviceAccountName" . }}
+      containers:
+      - env:
+        - name: RELEASE_VARS_APPVER
+          value: {{ .Values.image.tag }}
+    {{- if .Values.secrets }}
+    {{- range $key, $value := .Values.secrets }}
+        - name: {{ $key }}
+          value: vault:{{ $vaultPath }}#{{ $value }}
+    {{- end }}
+    {{- end }}
+    {{- if .Values.extraSecrets }}
+    {{- range $key, $value := .Values.extraSecrets }}
+        - name: {{ $key }}
+          value: {{ tpl $value $ }}
+    {{- end }}
+    {{- end }}
+    {{- if .Values.configmap }}
+        envFrom:
+        - configMapRef:
+            name: {{ $appname }}
+    {{- end }}
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: Always
+        name: {{ $appname }}
+        lifecycle:
+          preStop:
+            exec:
+              command: ["sleep","10"]
+        resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- if .Values.livenessProbe.enabled }}
+        livenessProbe:
+          failureThreshold: {{ .Values.livenessProbe.failureThreshold | default 3 }}
+    {{- if eq .Values.livenessProbe.mode "httpGet" }}
+          httpGet:
+            path: {{ .Values.livenessProbe.httpGet.path  }}
+            port: {{ .Values.livenessProbe.httpGet.port | default 80 }}
+            scheme: HTTP
+    {{- end }}
+    {{- if eq .Values.livenessProbe.mode "tcpSocket" }}
+          tcpSocket:
+            port: {{ .Values.livenessProbe.tcpSocket.port | default 80 }}
+    {{- end }}
+    {{- if eq .Values.livenessProbe.mode "execCommand" }}
+          exec:
+            command:
+              {{- range .Values.livenessProbe.execCommand.command}}
+            - {{ . }}
+              {{- end }}
+    {{- end }}
+          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds | default 5 }}
+          periodSeconds: {{ .Values.livenessProbe.periodSeconds | default 5 }}
+          successThreshold: {{ .Values.livenessProbe.successThreshold | default 1 }}
+          timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default 5 }}
+    {{- end }}
+    {{- if .Values.readinessProbe.enabled }}
+        readinessProbe:
+          failureThreshold: {{ .Values.readinessProbe.failureThreshold | default 3 }}
+    {{- if eq .Values.readinessProbe.mode "httpGet" }}
+          httpGet:
+            path: {{ .Values.readinessProbe.httpGet.path  }}
+            port: {{ .Values.readinessProbe.httpGet.port | default 80 }}
+            scheme: HTTP
+    {{- end }}
+    {{- if eq .Values.readinessProbe.mode "tcpSocket" }}
+          tcpSocket:
+            port: {{ .Values.readinessProbe.tcpSocket.port }}
+    {{- end }}
+    {{- if eq .Values.readinessProbe.mode "execCommand" }}
+          exec:
+            command:
+              {{- range .Values.readinessProbe.execCommand.command}}
+            - {{ . }}
+              {{- end }}
+    {{- end }}
+          initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds | default 5 }}
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds | default 5 }}
+          successThreshold: {{ .Values.readinessProbe.successThreshold | default 1 }}
+          timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds | default 5 }}
+    {{- end }}
+    {{- if .Values.containerArgs }}
+        args: [{{ .Values.containerArgs }}]
+    {{- end }}
+    {{- if .Values.deployRegistrySecret }}
+      imagePullSecrets:
+      - name: regsecret-{{ $appname }}
+    {{- end }}
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+    {{- end }}
+    {{- if .Values.tolerations }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}
+    {{- end }}
+      restartPolicy: Always
+{{- end -}}

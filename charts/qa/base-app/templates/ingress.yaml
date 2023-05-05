@@ -1,0 +1,71 @@
+{{- if .Values.ingress.enabled -}}
+{{- $appname := printf "%s" (include "name" .) -}}
+{{- $serviceDefaultName :=  printf "%s-%s" (include "name" .) "sv" -}}
+{{- $paths := .Values.ingress.paths -}}
+{{- $extraPaths := .Values.ingress.extraPaths -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ $appname }}-ingress
+  labels:
+    app: {{ $appname }}
+    appver: "{{ .Values.image.tag }}"
+    release: "{{ .Release.Name }}"
+{{- if .Values.ingress.annotations }}
+  annotations:
+{{ toYaml .Values.ingress.annotations | indent 4 }}
+{{- end }}
+spec:
+  rules:
+  {{- if .Values.ingress.hosts }}
+  {{- range $host := .Values.ingress.hosts }}
+    - host: {{ $host }}
+      http:
+        paths:
+  {{- if $extraPaths }}
+  {{- toYaml $extraPaths | nindent 10 }}
+  {{- end }}
+  {{- range $key, $value := $paths }}
+          - path: {{ $value.path }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ default $serviceDefaultName $value.backend.serviceName }}
+                port:
+                  {{- if $value.backend.servicePortName }}
+                  name: {{ $value.backend.servicePortName }}
+                  {{- else if $value.backend.servicePortNumber }}
+                  number: {{ $value.backend.servicePortNumber }}
+                  {{- else }}
+                  number: 80
+                  {{- end }}
+  {{- end -}}
+  {{- end -}}
+  {{- else }}
+    - http:
+        paths:
+  {{- if $extraPaths }}
+  {{- toYaml $extraPaths | nindent 10 }}
+  {{- end }}
+  {{- range $key, $value := $paths }}
+          - path: {{ $value.path }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ default $serviceDefaultName $value.backend.serviceName }}
+                port
+                  {{- if $value.backend.servicePortName }}
+                  name: {{ $value.backend.servicePortName }}
+                  {{- else if $value.backend.servicePortNumber }}
+                  number: {{ $value.backend.servicePortNumber }}
+                  {{- else }}
+                  number: 80
+                  {{- end }}
+  {{- end -}}
+  {{- end -}}
+  {{- if .Values.ingress.tls }}
+  tls:
+{{- toYaml .Values.ingress.tls | nindent 4 }}
+  {{- end -}}
+{{- end -}}

@@ -1,0 +1,74 @@
+app:
+  appName: notification-service
+  replicas: 2
+  vaultUrl: http://vault.vault.svc.cluster.local:8200
+  vaultProject: notification-service
+  vaultNamespace: portal
+  deployRegistrySecret: true
+  nodeSelector:
+    tier: "app"
+
+  service:
+    type: ClusterIP
+    ports:
+      http:
+        externalPort: 80
+        internalPort: 5000
+        protocol: TCP
+
+  image:
+    repository: "art.pmideep.com/portalteam-docker-prod/portal-python-notification_service"
+
+  prometheus:
+    enabled: true
+    port: "5000"
+    path: "/metrics"
+
+  livenessProbe:
+    enabled: true
+    mode: httpGet
+    httpGet:
+      port: 5000
+      path: "/healthz/live"
+
+  readinessProbe:
+    enabled: true
+    mode: httpGet
+    httpGet:
+      port: 5000
+      path: "/healthz/ready"
+
+  job:
+    enabled: true
+    spec:
+      migrations:
+        command: [ "sh", "-c", "/usr/local/bin/pymongo-migrate migrate -u $MONGODB_CONNECTION_URI -m pymongo_migrations" ]
+
+  secrets:
+    APP_ID: APP_ID
+    AUTH_API_ENDPOINT: AUTH_API_ENDPOINT
+    TENANT_ID: TENANT_ID
+    AWS_BUCKET_NAME: AWS_BUCKET_NAME
+    SENDER_ARN: SENDER_ARN
+    SENDER: SENDER
+    SECRET_KEY: SECRET_KEY
+    STAGE: STAGE
+    RECIPIENT: RECIPIENT
+    NOTIFICATION_API_KEY: NOTIFICATION_API_KEY
+
+  configmap:
+    METRICS_PREFIX: portal_services
+    
+# mongodb:
+#   image:
+#     registry: docker.io
+#     repository: bitnami/mongodb
+#     tag: 4.2.5-debian-10-r13
+#   auth:
+#     enabled: false
+#   replicaSet:
+#     enabled: false
+#   nodeSelector:
+#     tier: "infra"
+#   metrics:
+#     enabled: true

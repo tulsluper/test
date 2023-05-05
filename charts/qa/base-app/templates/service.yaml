@@ -1,0 +1,25 @@
+{{- if .Values.service.enabled -}}
+{{- $serviceDefaultName :=  printf "%s-%s" (include "name" .) "sv" -}}
+{{- $appname := printf "%s" (include "name" .) -}}
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ $serviceDefaultName }}
+  labels:
+    app: {{ $appname }}
+    appver: "{{ .Values.image.tag }}"
+    release: "{{ .Release.Name }}"
+spec:
+  ports:
+{{- range $key, $value := .Values.service.ports }}
+  - port: {{ default 80 $value.externalPort }}
+    targetPort: {{ $value.internalPort }}
+    protocol: {{ $value.protocol }}
+    name: {{ $key }}
+{{- end }}
+  selector:
+    app: {{ $appname }}
+    release: "{{ .Release.Name }}"
+  type: "ClusterIP"
+{{- end -}}

@@ -1,0 +1,27 @@
+{{- if .Values.serviceHeadless.enabled -}}
+{{- $serviceDefaultName :=  printf "%s-%s" (include "name" .) "headless-sv" -}}
+{{- $appname := printf "%s" (include "name" .) -}}
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ $serviceDefaultName }}
+  labels:
+    app: {{ $appname }}
+    appver: "{{ .Values.image.tag }}"
+    release: "{{ .Release.Name }}"
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+  clusterIP: None
+  ports:
+{{- range $key, $value := .Values.serviceHeadless.ports }}
+  - port: {{ default 80 $value.externalPort }}
+    targetPort: {{ $value.internalPort }}
+    protocol: {{ $value.protocol }}
+    name: {{ $key }}
+{{- end }}
+  selector:
+    app: {{ $appname }}
+    release: "{{ .Release.Name }}"
+{{- end -}}

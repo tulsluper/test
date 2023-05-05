@@ -1,0 +1,86 @@
+{{- if .Values.job.enabled -}}
+  {{- $root := . -}}
+  {{- $appname := printf "%s" (include "name" .) -}}
+  {{- $jobName :=  printf "%s-%s" (include "name" .) "job" -}}
+  {{- $vaultUrl := printf "%s" (include "vaultUrl" .) -}}
+  {{- $vaultRole := printf "%s" (include "vaultRole" .) -}}
+  {{- $vaultAuthPath := printf "%s" (include "vaultAuthPath" .) -}}
+  {{- $vaultPath := printf "secret/data/apps/%s/%s/%s" (include "vaultNamespace" .) (include "vaultProjectName" .) (include "environment" .) -}}
+  {{- range $key, $value := .Values.job.spec }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: {{ $root.Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/sync-wave: "-3"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+  labels:
+    job: {{ $jobName }}
+    app: {{ $appname }}
+    appver: {{ $root.Values.image.tag }}
+    release: {{ $root.Release.Name }}
+  name: {{ $jobName }}-{{ $key }}
+spec:
+  backoffLimit: 10
+  completions: 1
+  parallelism: 1
+  template:
+    metadata:
+      name: {{ $jobName }}-{{ $key }}
+      annotations:
+        vault.security.banzaicloud.io/vault-addr: {{ $vaultUrl }}
+        vault.security.banzaicloud.io/vault-role: {{ $vaultRole }}
+        vault.security.banzaicloud.io/vault-path: {{ $vaultAuthPath }} 
+      labels:
+        job: {{ $jobName }}
+        app: {{ $appname }}
+        appver: {{ $root.Values.image.tag }}
+        release: {{ $root.Release.Name }}
+    spec:
+      containers:
+      - name: {{ $key }}
+        command: 
+        {{- range $value.command }}
+        - {{ . }}
+        {{- end }}
+        args:
+        {{- range $value.args }}
+        - {{ . }}
+        {{- end }}
+        {{- if $root.Values.configmap }}
+        envFrom:
+        - configMapRef:
+            name: {{ $appname }}
+        {{- end }}
+        env:
+        {{- if $root.Values.secrets }}
+        {{- range $key, $value := $root.Values.secrets }}
+        - name: {{ $key }}
+          value: vault:{{ $vaultPath }}#{{ $value }}
+        {{- end }}
+        {{- end }}
+        {{- if $root.Values.extraSecrets }}
+        {{- range $key, $value := $root.Values.extraSecrets }}
+        - name: {{ $key }}
+          value: {{ tpl $value $ }}
+        {{- end }}
+        {{- end }}
+        image: {{ $root.Values.image.repository }}:{{ $root.Values.image.tag }}
+        imagePullPolicy: Always
+    {{- if $root.Values.deployRegistrySecret }}
+      imagePullSecrets:
+      - name: regsecret-{{ $appname }}
+    {{- end }}
+    {{- if $root.Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml $root.Values.nodeSelector | indent 8 }}
+    {{- end }}
+    {{- if $root.Values.tolerations }}
+      tolerations:
+{{ toYaml $root.Values.tolerations | indent 8 }}
+    {{- end }}
+      restartPolicy: OnFailure
+  {{- end -}}
+{{- end -}}

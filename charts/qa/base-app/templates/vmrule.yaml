@@ -1,0 +1,15 @@
+{{- if .Values.alerts.enabled -}}
+{{- $appname := printf "%s" (include "name" .) -}}
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: {{ $appname }}
+  namespace: monitoring
+  labels:
+    managed-by: vm-operator
+spec:
+  groups:
+    - name: {{ $appname }}
+      rules:
+{{ toYaml .Values.alerts.rules | nindent 6 }}
+{{- end -}}
