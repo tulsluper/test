@@ -5,5 +5,5 @@ dependencies:
 
 - alias: app
   name: base-app
-  repository: file://../../charts/qa/base-app
+  repository: file://../../../charts/qa/base-app
   version: 1.0.0
