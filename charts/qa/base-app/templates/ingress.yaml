@@ -28,7 +28,7 @@ spec:
   {{- end }}
   {{- range $key, $value := $paths }}
           - path: {{ $value.path }}
-            pathType: Prefix
+            pathType: {{ $value.pathType }}
             backend:
               service:
                 name: {{ default $serviceDefaultName $value.backend.service.name }}
@@ -50,7 +50,7 @@ spec:
   {{- end }}
   {{- range $key, $value := $paths }}
           - path: {{ $value.path }}
-            pathType: Prefix
+            pathType: {{ $value.pathType }}
             backend:
               service:
                 name: {{ default $serviceDefaultName $value.backend.service.name }}
